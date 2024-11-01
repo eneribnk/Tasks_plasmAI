@@ -1,18 +1,32 @@
 import torch
+import json
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 print("successfully imported packages")
 
+
 class MergedDataset(Dataset):
     def __init__(self):
         df = pd.read_csv('merged_1-2116.csv', sep=';')
-        #normalize the data with min-max
-        df_copy = df.copy()
-        for column in df_copy.columns:
-            df_copy[column] = (df_copy[column] - df_copy[column].min()) / ( df_copy[column].max() - df_copy[column].min())
+        # normalize the data with min-max
+        '''for column in df.columns:
+            df[column] = (df[column] - df[column].min()) / ( df[column].max() - df[column].min())'''
+        # normalize with mean, std and store the statistics for later use
+        stats = dict()
+        for column in df.columns:
+            mean, std = df[column].mean(), df[column].std()
+            df[column] = (df[column] - mean) / (std + 1e-10)  # 1e-10 is to avoid division with 0
+            stats[column] = {'mean': mean, 'std': std}
+
+        # Write statistics to a JSON file and store it
+        with open('column_stats.json', 'w') as f:
+            json.dump(stats, f)
+
         X_columns = ['Power', 'Pressure']  # features
-        y_columns = [col for col in df_copy.columns if col not in X_columns]  # To be predicted
-        self.X, self.y = df_copy[X_columns], df_copy[y_columns]
+        y_columns = [col for col in df.columns if col not in X_columns]  # To be predicted
+        self.X, self.y = df[X_columns], df[y_columns]
+
+        self.df = df
 
     def __getitem__(self, index):
         X = self.X.iloc[index, :].values
@@ -22,9 +36,9 @@ class MergedDataset(Dataset):
     def __len__(self):
         return self.X.shape[0]
 
-    def print_column_stats(df):
-        for column in df.columns:
-            col_data = df[column]  # save the column data, df.columns shows the column headers
+    def print_column_stats(self):
+        for column in self.df.columns:
+            col_data = self.df[column]  # save the column data, df.columns shows the column headers
 
             # statistics calculations
             nan_percentage = col_data.isna().mean() * 100  # True indicates the presence of null or missing values and False indicates otherwise, from pandas
@@ -42,11 +56,6 @@ class MergedDataset(Dataset):
             print(f"std: {std_value}")
             print("-" * 30)  # print a line -----------
 
-
-
-
-
-#MergedDataset(Dataset).print_column_stats()
 
 train_data = MergedDataset()
 dataloader = DataLoader(dataset=train_data, batch_size=4, shuffle=True)
