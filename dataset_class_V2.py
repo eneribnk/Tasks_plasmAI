@@ -1,8 +1,7 @@
 import torch
 import json
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import pandas as pd
-print("successfully imported packages")
 
 
 class MergedDataset(Dataset):
@@ -56,12 +55,3 @@ class MergedDataset(Dataset):
             print(f"std: {std_value}")
             print("-" * 30)  # print a line -----------
 
-
-train_data = MergedDataset()
-dataloader = DataLoader(dataset=train_data, batch_size=4, shuffle=True)
-train_data.print_column_stats()
-
-for batch_idx, (data, labels) in enumerate(dataloader):
-    print(f"Batch {batch_idx + 1}:")
-    print("Data:", data)
-    print("Labels:", labels)
